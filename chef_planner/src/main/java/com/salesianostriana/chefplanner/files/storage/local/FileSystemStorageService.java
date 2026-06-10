@@ -13,6 +13,7 @@ import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,6 +32,7 @@ public class FileSystemStorageService implements StorageService {
 
     private Path rootLocation;
 
+
     @PostConstruct
     @Override
     public void init() {
@@ -38,7 +40,7 @@ public class FileSystemStorageService implements StorageService {
         try {
             Files.createDirectories(rootLocation);
         } catch (IOException e) {
-            throw new StorageException("No se ha podido inicializar la localización de ficheros", e);
+            throw new StorageException("No se pudo inicializar el almacenamiento local", e);
         }
     }
 

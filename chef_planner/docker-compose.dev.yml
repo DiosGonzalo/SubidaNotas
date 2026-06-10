@@ -9,18 +9,27 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
+      STORAGE_S3_ENDPOINT: http://minio:9000
+      STORAGE_S3_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      STORAGE_S3_SECRET_KEY: ${MINIO_SECRET_KEY}
+      STORAGE_S3_BUCKET: ${MINIO_BUCKET}
+      STORAGE_S3_REGION: us-east-1
+      STORAGE_TYPE: s3
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     secrets:
       - db_password
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q UP"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
       interval: 10s
       timeout: 3s
       retries: 20
+
 
   postgres:
     image: postgres:16-alpine
@@ -54,6 +63,45 @@ services:
     ports:
       - "5050:80"
 
+  minio:
+    image: quay.io/minio/minio
+    container_name: ${APP_NAME}-minio-dev
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio-setup:
+    image: quay.io/minio/mc
+    container_name: ${APP_NAME}-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./minio-seed:/seed-data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
+      /usr/bin/mc cp --recursive /seed-data/ myminio/${MINIO_BUCKET}/;
+      exit 0;
+      "
+
 secrets:
   db_password:
     file: ./secrets/dev_db_password.txt
+
+volumes:
+  minio_data:

@@ -38,6 +38,6 @@ RUN chmod +x /app/entrypoint.sh
 USER spring:spring
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseContainerSupport -Djava.security.egd=file:/dev/./urandom"
-EXPOSE 8081
+EXPOSE 8080
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
