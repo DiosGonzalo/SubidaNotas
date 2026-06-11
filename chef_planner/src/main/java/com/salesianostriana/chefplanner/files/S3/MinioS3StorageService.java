@@ -4,8 +4,10 @@ import com.salesianostriana.chefplanner.files.shared.exception.StorageException;
 import com.salesianostriana.chefplanner.files.shared.model.FileMetadata;
 import com.salesianostriana.chefplanner.files.storage.StorageService;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Priority;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+@Primary
 @Service
 @ConditionalOnProperty(name = "storage.type", havingValue = "s3")
 public class MinioS3StorageService implements StorageService {

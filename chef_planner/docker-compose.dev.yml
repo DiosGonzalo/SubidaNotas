@@ -10,8 +10,6 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
       STORAGE_S3_ENDPOINT: http://minio:9000
-      STORAGE_S3_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      STORAGE_S3_SECRET_KEY: ${MINIO_SECRET_KEY}
       STORAGE_S3_BUCKET: ${MINIO_BUCKET}
       STORAGE_S3_REGION: us-east-1
       STORAGE_TYPE: s3
@@ -24,6 +22,8 @@ services:
         condition: service_healthy
     secrets:
       - db_password
+      - minio_access_key
+      - minio_secret_key
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
       interval: 10s
@@ -70,16 +70,19 @@ services:
       - "9002:9000"
       - "9003:9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
     volumes:
-      - minio_data:/data
+      - ./minio-seed:/seed-data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 3s
       retries: 10
+    secrets:
+      - minio_access_key
+      - minio_secret_key
 
   minio-setup:
     image: quay.io/minio/mc
@@ -90,18 +93,28 @@ services:
     volumes:
       - ./minio-seed:/seed-data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
+
+    secrets:
+      - minio_access_key
+      - minio_secret_key
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
-      /usr/bin/mc cp --recursive /seed-data/ myminio/${MINIO_BUCKET}/;
+      /usr/bin/mc alias set myminio http://minio:9000 $(cat /run/secrets/minio_access_key) $(cat /run/secrets/minio_secret_key);
+      /usr/bin/mc mb --ignore-existing myminio/chef-planner;
+      /usr/bin/mc anonymous set public myminio/chef-planner;
+      /usr/bin/mc cp --recursive /seed-data/ myminio/chef-planner/;
       exit 0;
       "
 
 secrets:
   db_password:
     file: ./secrets/dev_db_password.txt
+  minio_access_key:
+    file: ./secrets/s3_acces_key.txt
+  minio_secret_key:
+    file: ./secrets/s3_secret_key.txt
 
 volumes:
   minio_data:
