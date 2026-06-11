@@ -1,5 +1,6 @@
 package com.salesianostriana.chefplanner.files.S3;
 
+import com.salesianostriana.chefplanner.files.imageService.ImageVariantService;
 import com.salesianostriana.chefplanner.files.shared.exception.StorageException;
 import com.salesianostriana.chefplanner.files.shared.model.FileMetadata;
 import com.salesianostriana.chefplanner.files.storage.StorageService;
@@ -29,12 +30,13 @@ import java.util.function.Supplier;
 public class MinioS3StorageService implements StorageService {
 
     private final S3Client s3;
-
+    private final ImageVariantService imageVariantService;
     @Value("${storage.s3.bucket}")
     private String bucket;
 
-    public MinioS3StorageService(S3Client s3) {
+    public MinioS3StorageService(S3Client s3, ImageVariantService imageVariantService) {
         this.s3 = s3;
+        this.imageVariantService = imageVariantService;
     }
 
     @PostConstruct
@@ -71,7 +73,10 @@ public class MinioS3StorageService implements StorageService {
                 contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             }
 
-            // Lógica de subida real a S3/MinIO
+            // 1. Comprimir la imagen usando nuestro servicio
+            byte[] compressedBytes = imageVariantService.processImage(file);
+
+            // 2. Preparar la petición para MinIO
             PutObjectRequest putReq = PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
@@ -79,7 +84,8 @@ public class MinioS3StorageService implements StorageService {
                     .metadata(Map.of("original-filename", originalFilename))
                     .build();
 
-            s3.putObject(putReq, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            // 3. Subir el array de bytes comprimidos
+            s3.putObject(putReq, RequestBody.fromBytes(compressedBytes));
 
             return S3FileMetadataImpl.of(key, originalFilename, null);
 
