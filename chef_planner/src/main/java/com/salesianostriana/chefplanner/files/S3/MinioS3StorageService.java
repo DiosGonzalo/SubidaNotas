@@ -1,11 +1,14 @@
 package com.salesianostriana.chefplanner.files.S3;
 
+import com.salesianostriana.chefplanner.files.imageService.ImageVariantService;
 import com.salesianostriana.chefplanner.files.shared.exception.StorageException;
 import com.salesianostriana.chefplanner.files.shared.model.FileMetadata;
 import com.salesianostriana.chefplanner.files.storage.StorageService;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Priority;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -21,17 +24,19 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+@Primary
 @Service
 @ConditionalOnProperty(name = "storage.type", havingValue = "s3")
 public class MinioS3StorageService implements StorageService {
 
     private final S3Client s3;
-
+    private final ImageVariantService imageVariantService;
     @Value("${storage.s3.bucket}")
     private String bucket;
 
-    public MinioS3StorageService(S3Client s3) {
+    public MinioS3StorageService(S3Client s3, ImageVariantService imageVariantService) {
         this.s3 = s3;
+        this.imageVariantService = imageVariantService;
     }
 
     @PostConstruct
@@ -68,7 +73,8 @@ public class MinioS3StorageService implements StorageService {
                 contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             }
 
-            // Lógica de subida real a S3/MinIO
+            byte[] compressedBytes = imageVariantService.processImage(file);
+
             PutObjectRequest putReq = PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
@@ -76,7 +82,7 @@ public class MinioS3StorageService implements StorageService {
                     .metadata(Map.of("original-filename", originalFilename))
                     .build();
 
-            s3.putObject(putReq, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            s3.putObject(putReq, RequestBody.fromBytes(compressedBytes));
 
             return S3FileMetadataImpl.of(key, originalFilename, null);
 

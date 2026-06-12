@@ -109,32 +109,24 @@ public class DataInitializer implements CommandLineRunner {
                 .title("Tortilla Española").description("Tortilla clásica de patata y cebolla")
                 .minutes(Duration.ofMinutes(30)).difficulty(Difficulty.EASY)
                 .author(profileMaria).featured(true)
-                .coverFileData(loadImage("tortilla.jpg"))
-                .coverFileType("image/jpeg")
                 .build());
 
         Recipe polloAjillo = recipeRepository.save(Recipe.builder()
                 .title("Pollo al ajillo").description("Pollo con ajo y vino blanco")
                 .minutes(Duration.ofMinutes(45)).difficulty(Difficulty.MEDIUM)
                 .author(profileMaria).featured(false)
-                .coverFileData(loadImage("polloAjillo.jpg"))
-                .coverFileType("image/jpeg")
                 .build());
 
         Recipe arrozTomate = recipeRepository.save(Recipe.builder()
                 .title("Arroz con tomate").description("Arroz caldoso con sofrito de tomate")
                 .minutes(Duration.ofMinutes(25)).difficulty(Difficulty.EASY)
                 .author(profilePedro).featured(true)
-                .coverFileData(loadImage("arroTomate.jpg"))
-                .coverFileType("image/jpeg")
                 .build());
 
         Recipe croquetas = recipeRepository.save(Recipe.builder()
                 .title("Croquetas caseras").description("Croquetas de pollo con bechamel")
                 .minutes(Duration.ofMinutes(90)).difficulty(Difficulty.HARD)
                 .author(profilePedro).featured(false)
-                .coverFileData(loadImage("cocretas.jfif"))
-                .coverFileType("image/jpeg") // Aunque sea .jfif, suele manejarse como jpeg
                 .build());
 
         // 5. RECIPE INGREDIENTS

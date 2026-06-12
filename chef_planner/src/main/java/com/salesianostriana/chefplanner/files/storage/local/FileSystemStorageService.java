@@ -4,6 +4,7 @@ import com.salesianostriana.chefplanner.files.shared.exception.StorageException;
 import com.salesianostriana.chefplanner.files.shared.model.FileMetadata;
 import com.salesianostriana.chefplanner.files.storage.StorageService;
 import jakarta.annotation.PostConstruct;
+import com.salesianostriana.chefplanner.files.imageService.ImageVariantService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -31,6 +33,12 @@ public class FileSystemStorageService implements StorageService {
 
     private Path rootLocation;
 
+    private final ImageVariantService imageVariantService;
+
+    public FileSystemStorageService(ImageVariantService imageVariantService) {
+        this.imageVariantService = imageVariantService;
+    }
+
     @PostConstruct
     @Override
     public void init() {
@@ -38,25 +46,49 @@ public class FileSystemStorageService implements StorageService {
         try {
             Files.createDirectories(rootLocation);
         } catch (IOException e) {
-            throw new StorageException("No se ha podido inicializar la localización de ficheros", e);
+            throw new StorageException("No se pudo inicializar el almacenamiento local", e);
         }
     }
 
     @Override
     public FileMetadata store(MultipartFile file) {
         try {
-            String filename = store(file.getBytes(), file.getOriginalFilename(), file.getContentType());
+            byte[] processedBytes = imageVariantService.processImage(file); 
+            String filename = store(processedBytes, file.getOriginalFilename(), file.getContentType());
             return LocalFileMetadataImpl.of(filename);
         } catch (Exception ex) {
-            throw new StorageException("Error al almacenar el fichero: " + file.getOriginalFilename(), ex);
-        }
+            throw new StorageException("Error al almacenar el fichero: " + file.getOriginalFilename(), ex);        }
     }
 
     @Override
     public FileMetadata store(MultipartFile file, String folder) {
-        return null;
-    }
+        try {
+            byte[] processedBytes = imageVariantService.processImage(file);
+            String filename = StringUtils.cleanPath(file.getOriginalFilename());
 
+            Path targetDir = StringUtils.hasText(folder)
+                    ? rootLocation.resolve(folder)
+                    : rootLocation;
+
+            Files.createDirectories(targetDir);
+
+            filename = calculateNewFilename(filename);
+
+            try (InputStream inputStream = new ByteArrayInputStream(processedBytes)) {
+                Files.copy(inputStream, targetDir.resolve(filename),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            String relativePath = StringUtils.hasText(folder)
+                    ? folder + "/" + filename
+                    : filename;
+
+            return LocalFileMetadataImpl.of(relativePath);
+
+        } catch (Exception ex) {
+            throw new StorageException("Error al almacenar el fichero: " + file.getOriginalFilename(), ex);
+        }
+    }
     private String store(byte[] file, String filename, String contentType) throws Exception {
         String newFilename = StringUtils.cleanPath(filename);
 
@@ -115,7 +147,6 @@ public class FileSystemStorageService implements StorageService {
         }
     }
 
-    // Método para limpiar todo el almacenamiento (útil en tests)
     public void deleteAll() {
         try {
             FileSystemUtils.deleteRecursively(rootLocation);
