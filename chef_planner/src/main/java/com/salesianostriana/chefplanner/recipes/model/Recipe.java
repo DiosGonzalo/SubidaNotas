@@ -50,9 +50,7 @@ public class Recipe {
     private UserProfile author;
 
 
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    private byte[] coverFileData;
+    private String coverFileKey;
 
     private String coverFileType;
 

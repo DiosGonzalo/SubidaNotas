@@ -14,6 +14,7 @@ public record RecipeDetailsResponse(
         Difficulty difficulty,
         boolean featured,
         String authorName,
+        String coverUrl,
         List<RecipeIngredientResponse> ingredients
 ){
     public static RecipeDetailsResponse fromEntity(Recipe recipe, String username) {
@@ -25,6 +26,9 @@ public record RecipeDetailsResponse(
                 recipe.getDifficulty(),
                 recipe.isFeatured(),
                 username,
+                recipe.getCoverFileKey() != null
+                        ? "/api/v1/recipe/" + recipe.getId() + "/cover"
+                        : null,   //
                 recipe.getIngredients().stream()
                         .map(RecipeIngredientResponse::of)
                         .toList()

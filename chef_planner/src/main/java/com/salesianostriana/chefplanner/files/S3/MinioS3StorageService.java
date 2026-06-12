@@ -73,10 +73,8 @@ public class MinioS3StorageService implements StorageService {
                 contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             }
 
-            // 1. Comprimir la imagen usando nuestro servicio
             byte[] compressedBytes = imageVariantService.processImage(file);
 
-            // 2. Preparar la petición para MinIO
             PutObjectRequest putReq = PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
@@ -84,7 +82,6 @@ public class MinioS3StorageService implements StorageService {
                     .metadata(Map.of("original-filename", originalFilename))
                     .build();
 
-            // 3. Subir el array de bytes comprimidos
             s3.putObject(putReq, RequestBody.fromBytes(compressedBytes));
 
             return S3FileMetadataImpl.of(key, originalFilename, null);

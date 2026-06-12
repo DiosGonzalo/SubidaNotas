@@ -21,11 +21,10 @@ public class S3ClientConfig {
             @Value("${storage.s3.secret-key}") String secretKey,
             @Value("${storage.s3.endpoint:}") String endpoint
     ) {
-        //PAra er donde se me esta abriendo
         System.out.println(" ENDPOINT: [" + endpoint + "]");
         var creds = StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
         var s3cfg = S3Configuration.builder()
-                .pathStyleAccessEnabled(true) // Obligatorio para MinIO
+                .pathStyleAccessEnabled(true)
                 .build();
 
         var builder = S3Client.builder()

@@ -1,5 +1,7 @@
 package com.salesianostriana.chefplanner.files.web.controller;
 
+import com.salesianostriana.chefplanner.files.imageService.ImageVariantService;
+import com.salesianostriana.chefplanner.files.shared.model.FileMetadata;
 import com.salesianostriana.chefplanner.files.shared.utils.MimeTypeDetector;
 import com.salesianostriana.chefplanner.files.storage.StorageService;
 import com.salesianostriana.chefplanner.recipes.Dto.RecipeDetailsResponse;
@@ -25,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -38,6 +41,7 @@ public class FileController {
     private final RecipeService recipeService;
     private final MimeTypeDetector mimeTypeDetector;
     private final CustomUserDetailsService customUserDetailsService;
+    private final ImageVariantService imageVariantService;
 
 
     @Operation(
@@ -73,8 +77,8 @@ public class FileController {
             )
     })
     @GetMapping("/files/{id:.+}")
-    public ResponseEntity<Resource> getFile(@PathVariable String filename) throws IOException {
-        Resource resource = storageService.loadAsResource(filename);
+    public ResponseEntity<Resource> getFile(@PathVariable String id) throws IOException {
+        Resource resource = storageService.loadAsResource(id);
         String mimeType = mimeTypeDetector.getMimeType(resource);
 
         ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
@@ -161,6 +165,7 @@ public class FileController {
                     )
             )
     })
+    @Transactional
     public ResponseEntity<RecipeDetailsResponse> uploadCover(
             @Parameter(description = "ID de la receta", example = "1")
             @PathVariable Long id,
@@ -172,8 +177,8 @@ public class FileController {
 
         Recipe recipe = recipeService.findById(id);
 
-        recipe.setCoverFileData(file.getBytes());
-        recipe.setCoverFileType(file.getContentType());
+        FileMetadata metadata = storageService.store(file, "covers");
+        recipe.setCoverFileKey(metadata.getId());
 
         Recipe savedRecipe = recipeService.saveDirectly(recipe);
 
@@ -213,22 +218,16 @@ public class FileController {
             )
     })
     @GetMapping("/recipe/{id}/cover")
-    public ResponseEntity<byte[]> getCover(
-            @Parameter(description = "ID de la receta", example = "1")
-            @PathVariable Long id) {
+    public ResponseEntity<Resource> getCover(@PathVariable Long id) {
         Recipe recipe = recipeService.findById(id);
-
-        if (recipe.getCoverFileData() == null || recipe.getCoverFileData().length == 0) {
+        if (recipe.getCoverFileKey() == null || recipe.getCoverFileKey().isBlank()) {
             return ResponseEntity.notFound().build();
         }
-
-        String contentType = recipe.getCoverFileType() != null
-                ? recipe.getCoverFileType()
-                : "image/jpeg";
-
+        Resource resource = storageService.loadAsResource(recipe.getCoverFileKey());
+        String mimeType = mimeTypeDetector.getMimeType(resource);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, contentType)
-                .body(recipe.getCoverFileData());
+                .header(HttpHeaders.CONTENT_TYPE, mimeType)
+                .body(resource);
     }
 
 }
