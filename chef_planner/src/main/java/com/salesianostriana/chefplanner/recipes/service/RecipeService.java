@@ -13,6 +13,7 @@ import com.salesianostriana.chefplanner.user.model.UserProfile;
 import com.salesianostriana.chefplanner.user.repository.UserProfileRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Log
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -47,7 +49,12 @@ public class RecipeService {
     }
     @Transactional(readOnly = true)
     public Page<Recipe> findAll(Pageable pageable) {
-        return repository.findAllWithAuthor(pageable);
+        Page<Recipe> result = repository.findAllWithAuthor(pageable);
+
+        result.forEach(r -> log.info("Receta: id %s, imagen %s".formatted(r.getId().toString(), r.getCoverFileKey())));
+
+        return result;
+
     }
 
 

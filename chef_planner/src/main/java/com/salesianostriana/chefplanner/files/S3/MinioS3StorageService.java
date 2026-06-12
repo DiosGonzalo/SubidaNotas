@@ -6,6 +6,7 @@ import com.salesianostriana.chefplanner.files.shared.model.FileMetadata;
 import com.salesianostriana.chefplanner.files.storage.StorageService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
@@ -26,6 +27,7 @@ import java.util.function.Supplier;
 
 @Primary
 @Service
+@Log
 @ConditionalOnProperty(name = "storage.type", havingValue = "s3")
 public class MinioS3StorageService implements StorageService {
 
@@ -94,9 +96,13 @@ public class MinioS3StorageService implements StorageService {
     @Override
     public Resource loadAsResource(String id) {
         try {
+            log.info("Estoy trayendo las imagenes");
             var head = s3.headObject(HeadObjectRequest.builder().bucket(bucket).key(id).build());
             Supplier supplier = () -> s3.getObject(GetObjectRequest.builder().bucket(bucket).key(id).build());
+            log.info("Estoy trayendo las imagenes");
+
             return new S3ObjectResource(supplier, id, head.contentLength(), head.contentType());
+
         } catch (Exception e) {
             throw new StorageException("No se pudo leer el fichero de S3: " + id, e);
         }

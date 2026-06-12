@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,6 +35,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Log
 @Tag(name = "Endpoints que maneja la subida y muestra de ficheros")
 public class FileController {
 
@@ -220,14 +222,19 @@ public class FileController {
     @GetMapping("/recipe/{id}/cover")
     public ResponseEntity<Resource> getCover(@PathVariable Long id) {
         Recipe recipe = recipeService.findById(id);
+        log.info("Estoy entrando al endoint");
         if (recipe.getCoverFileKey() == null || recipe.getCoverFileKey().isBlank()) {
+            log.info("Sin imagen");
             return ResponseEntity.notFound().build();
         }
+        log.info("Imagen %s".formatted(recipe.getCoverFileKey()));
         Resource resource = storageService.loadAsResource(recipe.getCoverFileKey());
         String mimeType = mimeTypeDetector.getMimeType(resource);
+        log.info("ha pasado el if");
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, mimeType)
                 .body(resource);
+
     }
 
 }
