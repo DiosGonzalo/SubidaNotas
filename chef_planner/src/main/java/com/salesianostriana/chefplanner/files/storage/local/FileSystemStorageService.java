@@ -53,7 +53,7 @@ public class FileSystemStorageService implements StorageService {
     @Override
     public FileMetadata store(MultipartFile file) {
         try {
-            byte[] processedBytes = imageVariantService.processImage(file); 
+            byte[] processedBytes = imageVariantService.processImage(file);
             String filename = store(processedBytes, file.getOriginalFilename(), file.getContentType());
             return LocalFileMetadataImpl.of(filename);
         } catch (Exception ex) {
@@ -129,6 +129,7 @@ public class FileSystemStorageService implements StorageService {
             UrlResource resource = new UrlResource(file.toUri());
 
             if (resource.exists() && resource.isReadable()) {
+
                 return resource;
             } else {
                 throw new StorageException("No se puede leer el fichero: " + id);

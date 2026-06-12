@@ -24,6 +24,7 @@ import java.util.Objects;
 @NoArgsConstructor
 @Getter @Setter
 @Builder
+@ToString
 public class Recipe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,6 +59,7 @@ public class Recipe {
     @ColumnDefault("false")
     private boolean featured = false;
 
+    @ToString.Exclude
     @Builder.Default
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> ingredients = new ArrayList<>();
